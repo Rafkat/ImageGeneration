@@ -8,7 +8,7 @@ class Generator(nn.Module):
         self.init_size = img_size // 4
         self.l1 = nn.Linear(latent_dim, latent_dim * self.init_size * self.init_size)
 
-        self.bn1 = nn.BatchNorm2d(128)
+        self.bn1 = nn.BatchNorm2d(latent_dim)
         self.upsample1 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv1 = nn.Conv2d(latent_dim, latent_dim, kernel_size=3, stride=1, padding=1)
 
