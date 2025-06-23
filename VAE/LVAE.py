@@ -13,19 +13,19 @@ class BottomUpEncoder(nn.Module):
             self.layers.append(nn.Sequential(
                 nn.Linear(prev_dim, h_dim),
                 nn.ReLU(),
-                nn.Linear(h_dim, 2 * z_dim)  # Для mu и log_var
+                nn.Linear(h_dim, 2 * z_dim)
             ))
             prev_dim = z_dim
 
     def forward(self, x):
-        stats = []  # Собираем (mu, log_var) для каждого уровня
+        stats = []
         h = x
         for layer in self.layers:
             h = layer(h)
             mu, log_var = torch.chunk(h, 2, dim=-1)
             stats.append((mu, log_var))
-            h = mu  # Передаем mu на следующий уровень
-        return stats  # [(mu_1, log_var_1), ...]
+            h = mu
+        return stats
 
 
 class TopDownDecoder(nn.Module):
@@ -37,7 +37,7 @@ class TopDownDecoder(nn.Module):
             self.layers.append(nn.Sequential(
                 nn.Linear(prev_dim, h_dim),
                 nn.ReLU(),
-                nn.Linear(h_dim, 2 * z_dim)  # Для mu и log_var
+                nn.Linear(h_dim, 2 * z_dim)
             ))
             prev_dim = z_dim
         self.final_layer = nn.Linear(prev_dim, output_dim)
@@ -48,7 +48,6 @@ class TopDownDecoder(nn.Module):
             mu_enc, log_var_enc = encoder_stats[i + 1]
             h = layer(h)
             mu_dec, log_var_dec = torch.chunk(h, 2, dim=-1)
-            # Объединяем информацию энкодера и декодера
             mu = (mu_enc + mu_dec) / 2
             log_var = (log_var_enc + log_var_dec) / 2
             h = mu
@@ -86,7 +85,6 @@ def lvae_loss(x, x_recon, encoder_stats, z_list, beta=1.0):
 
     kl_loss = 0
     for (mu, log_var), z in zip(encoder_stats, z_list):
-        # KL между q(z_i | x) и p(z_i | z_{i-1})
         kl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
         kl_loss += kl
 

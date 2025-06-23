@@ -76,10 +76,21 @@ class VQVAE(nn.Module):
         super(VQVAE, self).__init__()
         self.encoder = Encoder(in_dim, hidden_dim, embedding_dim)
         self.vectorQuantizer = VectorQuantizer(num_embeddings, embedding_dim, commitment_cost)
-        self.decoder = Decoder(embedding_dim, hidden_dim, embedding_dim)
+        self.decoder = Decoder(in_dim, hidden_dim, embedding_dim)
 
     def forward(self, x):
         z_e = self.encoder(x)
         z_q, vq_loss = self.vectorQuantizer(z_e)
         x_recon = self.decoder(z_q)
         return x_recon, vq_loss
+
+
+def vqvae_loss(x_recon, x, vq_loss, recon_weight=1.0):
+    recon_loss = F.binary_cross_entropy(x_recon, x) * recon_weight
+    total_loss = recon_loss + vq_loss
+    return total_loss
+
+
+if __name__ == '__main__':
+    model = VQVAE(in_dim=3, hidden_dim=1024, embedding_dim=512, num_embeddings=10)
+    model(torch.randn(2, 3, 64, 64))
