@@ -54,8 +54,8 @@ class Unet(nn.Module):
 
     def forward(self, x, t):
         t_emb = self.time_mlp(t.unsqueeze(-1).float())
-        h1 = self.down1(x)
-        h2 = self.down2(h1)
+        h1 = self.down1(x, t_emb)
+        h2 = self.down2(F.max_pool2d(h1, 2), t_emb)
         h = F.interpolate(h2, scale_factor=2)
         h = self.up1(torch.cat([h, h1], dim=1), t_emb)
         h = self.up2(torch.cat([h, x], dim=1), t_emb)
