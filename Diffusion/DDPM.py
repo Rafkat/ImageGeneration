@@ -33,7 +33,7 @@ class Block(nn.Module):
             self.transform = nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, stride=2, padding=1)
         else:
             self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-            self.transform = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+            self.transform = nn.Conv2d(out_channels, out_channels, kernel_size=4, stride=2, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
@@ -59,16 +59,17 @@ class Unet(nn.Module):
         self.down2 = Block(64, 128, time_embedding_dim)
         self.down3 = Block(128, 256, time_embedding_dim)
         self.up1 = Block(256 + 128, 128, time_embedding_dim, up=True)
-        self.up2 = Block(128 + 64, 64, time_embedding_dim)
-        self.up3 = Block(64 + in_channels, out_channels, time_embedding_dim)
+        self.up2 = Block(128 + 64, 64, time_embedding_dim, up=True)
+        self.up3 = Block(64 + in_channels, out_channels, time_embedding_dim, up=True)
 
     def forward(self, x, t):
         t_emb = self.time_mlp(t.unsqueeze(-1).float())
         h1 = self.down1(x, t_emb)
         h2 = self.down2(F.max_pool2d(h1, 2), t_emb)
-        h3 = self.down3(F.max_pool2d(h2, 2), t_emb)
+        h3 = self.down3(h2, t_emb)
         h = F.interpolate(h3, scale_factor=2)
         h = self.up1(torch.cat([h, h2], dim=1), t_emb)
+        h = F.interpolate(h, scale_factor=2)
         h = self.up2(torch.cat([h, h1], dim=1), t_emb)
         h = self.up3(torch.cat([h, x], dim=1), t_emb)
         return h
